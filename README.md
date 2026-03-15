@@ -130,7 +130,7 @@ To distinguish this project from a standard academic exercise, I implemented sev
 
 To demonstrate production-standard software engineering maturity:
 
-1.  **Automated Testing (Pytest):** A comprehensive unit test suite in `tests/` verifies the integrity of the NLP pipeline, keyword detector, and Unicode normalization. Run `make test` to see 100% passing results.
+1.  **Reliability**: Fully automated 14-test suite (Unit + API Integration) with 100% pass rate. A robust suite in `tests/` combines **Unit Tests** (NLP pipeline, Unicode) with **API Integration Tests** (confirming end-to-end model inference). Run `make test` for instant verification.
 2.  **Workflow Orchestration (Makefile):** Standardized targets for `install`, `train`, `test`, `run`, and Docker operations provide a professional developer experience.
 3.  **CI/CD (GitHub Actions):** Automated linting (flake8) and testing (pytest) are configured in `.github/workflows/ci.yml` for modern development lifecycles.
 4.  **Professional Logging:** Switched from basic script-style `print()` statements to Python's built-in `logging` module for production-grade API observability.

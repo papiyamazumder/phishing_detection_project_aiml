@@ -67,7 +67,7 @@ To distinguish this submission from standard academic projects, we implemented t
 - [x] **Evaluation**: Documented precision, recall, and ROC-AUC metrics.
 - [x] **Keyword Detection**: Real-time highlighting of 9 distinct phishing categories.
 - [x] **Maintenance**: Professional logging, Makefile automation, and CI/CD pipelines.
-- [x] **Reliability**: Automated unit test suite (Pytest) with 100% pass rate.
+- [x] **Reliability**: Fully automated 14-test suite (Unit + API Integration) with 100% pass rate.
 - [x] **Feedback Loop**: Human-in-the-loop system for continuous model improvement.
 - [x] **User Interface**: Premium React dashboard with aviation-grade aesthetics.
 
