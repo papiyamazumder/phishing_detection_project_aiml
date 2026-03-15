@@ -1,0 +1,2 @@
+timestamp,text,is_correct,prediction,confidence,comment
+2026-03-16 02:41:13,"Your upcoming duty schedule has been updated in our system. Due to a recent platform migration, you are required to log in and re-confirm your schedule details to ensure accurate records before the next rostering cycle. Failure to confirm your details by end of day may result in scheduling conflicts and temporary loss of access to your duty assignments. Verify here: http://schedule-update-portal.info/account/verify",True,Phishing,0.725,
