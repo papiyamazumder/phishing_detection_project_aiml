@@ -3,27 +3,36 @@ import "./App.css";
 
 const API_BASE = "http://localhost:5001/api";
 
-const AVIATION_DEMO = [
+const DEMO_MESSAGES = [
   {
-    type: "phishing",
-    label: "✈️ Crew Portal",
-    text: "Urgent: Verify your airline crew portal credentials immediately. Your flight assignment access will be revoked if not completed by end of day. Use the secure link: http://crew-portal-login.biz/verify",
+    type: "staff",
+    label: "✈️ Fake Staff Login",
+    text: `Our system has detected multiple failed login attempts on your staff account over the past 24 hours. As a precautionary measure, all employees are required to re-verify their credentials through our secure helpdesk portal before end of business today to avoid temporary suspension of system and roster access. Please confirm your identity here: http://staff-account-verify.biz/employee/login`
   },
+
   {
-    type: "phishing",
-    label: "📅 Flight Schedule",
-    text: "Flight schedule update requires immediate account verification. Log in to the crew management portal before your next assignment to avoid roster delays: http://crew-mgmt-portal.xyz/login",
+    type: "schedule",
+    label: "📅 Fake Schedule Alert",
+    text: `Your upcoming duty schedule has been updated in our system. Due to a recent platform migration, you are required to log in and re-confirm your schedule details to ensure accurate records before the next rostering cycle. Failure to confirm your details by end of day may result in scheduling conflicts and temporary loss of access to your duty assignments. Verify here: http://schedule-update-portal.info/account/verify`
   },
+
   {
-    type: "suspicious",
-    label: "🔒 IT Security",
-    text: "Hi Team,\nAs part of our quarterly IT security review, we are rolling out several updates to improve internal data protection.\n• New password rotation policy (every 90 days)\n• Updated VPN access guidelines\nPlease confirm your account activity using this portal: http://account-security-review.biz/employee/login\nRegards, Michael Carter\nIT Security Operations",
+    type: "it",
+    label: "🔒 Fake IT Warning",
+    text: `As part of our quarterly IT security review, our monitoring system detected several unusual login attempts across employee accounts last night. While most were automatically blocked, all staff are required to review their recent account activity and reset their credentials before end of business today to avoid any interruption to email and system access. Complete your verification here: http://security-review-portal.net/staff/credentials`
   },
+
   {
-    type: "legit",
-    label: "✅ Ops Notice",
-    text: "Flight OPS Notice: Aircraft B737-800 (VT-AXR) maintenance check completed successfully. All airworthiness directives (ADs) complied with. Aircraft cleared for next scheduled departure at 0600 UTC.",
+    type: "notice",
+    label: "✅ Fake Company Notice",
+    text: `As part of our annual payroll system migration, all employees are required to re-verify their personal and banking details to ensure uninterrupted salary processing for the upcoming payment cycle. Please confirm your information before this Friday to avoid any delay in your salary disbursement. Update your details here: http://hr-payroll-staff-verify.biz/employee/banking`
   },
+
+  {
+    type: "general",
+    label: "🌐 Miscellaneous Threats",
+    text: `Congratulations! You have been selected as one of our loyalty reward winners for this quarter. As a valued customer, you are eligible to claim a gift voucher worth $500 as a token of our appreciation. This offer is strictly limited and expires within the next 24 hours, so act now to avoid missing out on your reward: http://loyalty-rewards-claim.biz/voucher/redeem`
+  }
 ];
 
 function HighlightedText({ text }) {
@@ -45,31 +54,34 @@ function HighlightedText({ text }) {
   );
 }
 
-function RiskGauge({ confidence }) {
-  const angle = (confidence * 180) - 90;
+function ConfidenceBar({ confidence, label }) {
   const pct = Math.round(confidence * 100);
 
-  let color = "#22c55e"; // Legit
-  if (pct >= 70) color = "#ff4444"; // Phish
-  else if (pct >= 30) color = "#f97316"; // Suspicious
+  let background = "linear-gradient(90deg, #00C8FF, #00D68F)";
+  if (pct >= 71) {
+    background = "linear-gradient(90deg, #FFB800, #FF3B3B)";
+  } else if (pct >= 41) {
+    background = "#FFB800"; // Warning amber
+  }
 
   return (
-    <div className="risk-gauge-wrap">
-      <div className="gauge-container">
-        <div className="gauge-bg"></div>
-        <div className="gauge-fill" style={{
-          background: `conic-gradient(from -90deg at 50% 100%, ${color} ${pct * 1.8}deg, var(--bg3) 0)`
-        }}></div>
-        <div className="gauge-needle" style={{ transform: `rotate(${angle}deg)` }}></div>
-        <div className="gauge-center">
-          <span className="gauge-value" style={{ color }}>{pct}%</span>
-          <span className="gauge-label">RISK</span>
-        </div>
+    <div className="conf-bar-wrap">
+      <div className="conf-bar-labels">
+        <span>Safe</span>
+        <span>Low</span>
+        <span>Medium</span>
+        <span>High</span>
       </div>
-      <div className="gauge-scales">
-        <span>LEGIT</span>
-        <span>SUSPICIOUS</span>
-        <span>PHISHING</span>
+      <div className="conf-bar-container">
+        <div className="conf-bar-bg" />
+        <div className="conf-bar-fill" style={{ width: `${pct}%`, background }} />
+        <div className="conf-bar-needle" style={{ left: `${pct}%`, backgroundColor: "#ffffff" }} />
+      </div>
+      <div className="conf-bar-value" style={{ color: label === 1 ? "#FF3B3B" : "#00D68F" }}>
+        {pct}% Phishing Risk
+      </div>
+      <div className="conf-bar-description" style={{ color: label === 1 ? "#FF3B3B" : "#00D68F" }}>
+        {label === 1 ? "⚠️ This message is likely phishing" : "✓ This message appears safe"}
       </div>
     </div>
   );
@@ -141,15 +153,17 @@ function KeywordCategory({ name, keywords }) {
   );
 }
 
-function FeatureMeter({ label, value, max, format }) {
+function FeatureMeter({ label, value, max = 100, format }) {
   const pct = Math.min((value / max) * 100, 100);
   const formatted = format === "pct" ? `${value.toFixed(1)}%` :
-    format === "int" ? Math.round(value) : value.toFixed(1);
+    format === "int" ? Math.round(value) :
+      `${value.toFixed(0)}%`;
+
   return (
     <div className="feat-row">
       <span className="feat-label">{label}</span>
       <div className="feat-bar-wrap">
-        <div className="feat-bar" style={{ width: `${pct}%` }} />
+        <div className="feat-bar" style={{ width: `${pct}%`, opacity: value > 0 ? 1 : 0.3 }} />
       </div>
       <span className="feat-value">{formatted}</span>
     </div>
@@ -163,6 +177,55 @@ export default function App() {
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState("unknown");
   const resultRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const [isDark, setIsDark] = useState(
+    () => localStorage.getItem('theme') !== 'light'
+  );
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Client-side size check (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("File size exceeds 2MB limit.");
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_BASE}/parse-file`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "File parsing failed");
+      }
+
+      const data = await res.json();
+      setText(data.text.slice(0, 5000));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+      e.target.value = null; // reset input
+    }
+  };
 
   const checkHealth = useCallback(async () => {
     try {
@@ -228,7 +291,7 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" data-theme={isDark ? 'dark' : 'light'}>
       {/* ── HEADER ── */}
       <header className="header">
         <div className="header-inner">
@@ -244,6 +307,9 @@ export default function App() {
               <span className="label">SEC-LEVEL:</span>
               <span className="value">CLASS-A</span>
             </div>
+            <button className="theme-toggle-btn" onClick={toggleTheme}>
+              {isDark ? '☀️' : '🌙'}
+            </button>
             <button
               className={`status-btn status-${apiStatus}`}
               onClick={checkHealth}
@@ -270,9 +336,9 @@ export default function App() {
 
         {/* ── DEMO BUTTONS ── */}
         <section className="demo-section">
-          <span className="demo-label">Threat Scenarios:</span>
+          <span className="demo-label">Test with Real-World Phishing Scenarios:</span>
           <div className="demo-btns">
-            {AVIATION_DEMO.map((d, i) => (
+            {DEMO_MESSAGES.map((d, i) => (
               <button
                 key={i}
                 className={`demo-btn demo-${d.type}`}
@@ -289,24 +355,48 @@ export default function App() {
           <div className="input-card">
             <div className="input-header">
               <span className="input-title">MESSAGE PAYLOAD ANALYZER</span>
-              <span className="char-count">{text.length} / 5000 chars</span>
+              <div className="input-header-utils">
+                <span className="char-count">{text.length} / 5000 chars</span>
+                <button
+                  className="clear-btn"
+                  onClick={() => { setText(""); setResult(null); setError(null); }}
+                  disabled={!text && !result}
+                  title="Clear all text and results"
+                >
+                  🗑️ CLEAR
+                </button>
+              </div>
             </div>
             <textarea
               className="msg-input"
-              placeholder="Paste suspicious aviation communication, crew alerts, or enterprise emails here..."
+              placeholder={`Paste any suspicious email, SMS, or message directly in this box to scan for phishing threats.
+Include the subject line and any URLs for better accuracy.
+Or upload a .eml, .txt, or .pdf file using the button below.`}
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 5000))}
               onKeyDown={handleKeyDown}
               rows={8}
             />
             <div className="input-footer">
-              <button
-                className="clear-btn"
-                onClick={() => { setText(""); setResult(null); setError(null); }}
-                disabled={!text && !result}
-              >
-                Clear Terminal
-              </button>
+              <div className="input-actions-left">
+                <input
+                  type="file"
+                  accept=".txt,.eml,.pdf"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+                <div className="upload-wrapper">
+                  <button
+                    className="upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Upload text-based files (.txt, .eml, etc.)"
+                  >
+                    📁 Upload File
+                  </button>
+                  <span className="upload-hint">Supported: .txt, .eml, .pdf</span>
+                </div>
+              </div>
               <button
                 className={`analyze-btn ${loading ? 'loading' : ''}`}
                 onClick={() => analyze()}
@@ -343,7 +433,7 @@ export default function App() {
               <div className="verdict-text">
                 <h3>DETECTION: {result.prediction.toUpperCase()}</h3>
                 <p>
-                  Confidence: <strong>{result.confidence_pct}%</strong>
+                  Phishing Probability: <strong>{Math.round(result.confidence * 100)}%</strong>
                   &nbsp;·&nbsp;
                   Analysis Latency: {result.processing_ms}ms
                 </p>
@@ -351,18 +441,18 @@ export default function App() {
               <RiskBadge level={result.risk_level} />
             </div>
 
-            <div className="results-grid">
+            <div className={`results-grid ${!result.keywords.is_suspicious ? 'single-col' : ''}`}>
               {/* Left Column */}
               <div className="results-col">
                 {/* Risk Gauge */}
-                <div className="result-card">
-                  <h4>Risk Probability Gauge</h4>
-                  <RiskGauge confidence={result.confidence} />
+                <div className="result-card card-risk">
+                  <h4>📈 Phishing Risk Level</h4>
+                  <ConfidenceBar confidence={result.confidence} label={result.label} />
                 </div>
 
                 {/* Threat Summary */}
-                <div className="result-card">
-                  <h4>Threat Intelligence Summary</h4>
+                <div className="result-card card-summary">
+                  <h4>🧠 Threat Intelligence Summary</h4>
                   <div className="threat-summary">
                     <div className="threat-item">
                       <span className="t-label">Inference Logic:</span>
@@ -377,60 +467,74 @@ export default function App() {
 
                 {/* URL Signals */}
                 {result.keywords.url_signals && result.keywords.url_signals.length > 0 && (
-                  <div className="result-card">
-                    <h4>Malicious Link Signatures</h4>
+                  <div className="result-card card-urls">
+                    <h4>🔗 Malicious Link Signatures</h4>
                     <UrlSignals signals={result.keywords.url_signals} />
                   </div>
                 )}
+
+                {/* Feature breakdown */}
+                <div className="result-card card-features">
+                  <h4>⚡ Risk Signal Breakdown</h4>
+                  <div className="features-grid">
+                    <FeatureMeter label="Domain Risk Score" value={result.features.aviation_phish_score} />
+                    <FeatureMeter label="Threat Score" value={result.features.enterprise_phish_score} />
+                    <FeatureMeter label="Pattern Match" value={result.features.contextual_combo_score} />
+                    <FeatureMeter label="Urgency Score" value={result.features.urgency_score} />
+                    <FeatureMeter label="Password Theft" value={result.features.credential_score} />
+                    <FeatureMeter label="Suspicious Links" value={result.features.suspicious_tld_count} max={5} format="int" />
+                    <FeatureMeter label="Uppercase Words" value={result.features.uppercase_count} max={10} format="int" />
+                    <FeatureMeter label="Special Characters" value={result.features.special_char_count} max={15} format="int" />
+                  </div>
+                </div>
               </div>
 
-              {/* Right Column */}
-              <div className="results-col">
-                {/* Keyword detection */}
-                {result.keywords.is_suspicious && (
-                  <div className="result-card">
-                    <h4>Phishing Pattern Identification</h4>
+              {/* Right Column - Only rendered if suspicious content exists */}
+              {result.keywords.is_suspicious && (
+                <div className="results-col">
+                  {/* Keyword detection */}
+                  <div className="result-card card-patterns">
+                    <h4>🎯 Phishing Pattern Identification</h4>
                     <div className="kw-categories">
                       {Object.entries(result.keywords.categories).map(([cat, kws]) => (
                         <KeywordCategory key={cat} name={cat} keywords={kws} />
                       ))}
                     </div>
                   </div>
-                )}
 
-                {/* Highlighted text */}
-                {result.keywords.highlighted_text && result.keywords.is_suspicious && (
-                  <div className="result-card">
-                    <h4>Annotated Payload Trace</h4>
-                    <HighlightedText text={result.keywords.highlighted_text} />
-                    <p className="highlight-legend">
-                      <span className="mark-indicator"></span> = Identified Threat Pattern
-                    </p>
-                  </div>
-                )}
-
-                {/* Feature breakdown */}
-                <div className="result-card">
-                  <h4>Signal Strength Breakdown</h4>
-                  <div className="features-grid">
-                    <FeatureMeter label="Aviation Domain Sig" value={result.features.aviation_phish_score} max={10} />
-                    <FeatureMeter label="Enterprise Sig" value={result.features.enterprise_phish_score} max={10} />
-                    <FeatureMeter label="Contextual Combo" value={result.features.contextual_combo_score} max={10} />
-                    <FeatureMeter label="Urgency Pressure" value={result.features.urgency_score} max={10} />
-                    <FeatureMeter label="Credential Signals" value={result.features.credential_score} max={10} />
-                    <FeatureMeter label="Suspicious URLs" value={result.features.url_count} max={5} format="int" />
-                    <FeatureMeter label="Uppercase Ratio" value={result.features.uppercase_count} max={10} format="int" />
-                    <FeatureMeter label="Special Char Count" value={result.features.special_char_count} max={15} format="int" />
-                  </div>
+                  {/* Highlighted text */}
+                  {result.keywords.highlighted_text && (
+                    <div className="result-card card-trace">
+                      <h4>📝 Annotated Payload Trace</h4>
+                      <HighlightedText text={result.keywords.highlighted_text} />
+                      <p className="highlight-legend">
+                        <span className="mark-indicator"></span> = Identified Threat Pattern
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* No keywords legit message */}
-            {!result.keywords.is_suspicious && result.prediction === "Legitimate" && (
+            {/* Dynamic Result Summary Cards */}
+            {result.prediction === "Phishing" && (
+              <div className="threat-card phish-summary">
+                <span className="threat-icon">🚨</span>
+                <p>Critical threat signatures detected. High correlation with known credential harvesting or BEC patterns identified in this sector.</p>
+              </div>
+            )}
+
+            {result.prediction === "Suspicious" && (
+              <div className="threat-card suspicious-summary">
+                <span className="threat-icon">⚠️</span>
+                <p>Anomalous signals identified. Content contains secondary threat layers or unverified redirection paths requiring manual review.</p>
+              </div>
+            )}
+
+            {result.prediction === "Legitimate" && (
               <div className="safe-card">
                 <span className="safe-icon">🛡️</span>
-                <p>No actionable threat patterns detected. Message aligns with standard enterprise communication profiles.</p>
+                <p>No actionable threat patterns detected. Message aligns with standard enterprise and aviation communication profiles.</p>
               </div>
             )}
           </section>
@@ -440,10 +544,10 @@ export default function App() {
       <footer className="footer">
         <div className="footer-content">
           <p>
-            PHISHGUARD SECURE INTELLIGENCE · POWERED BY DISTILBERT-TRANSFORMER (L6-H768)
+            PhishGuard AI · Phishing Detection & Analysis Platform · © 2026 QMSMART Technologies
           </p>
           <p className="footer-sub">
-            Deployed Cluster: QMS-SAFE-01 · Aviation Compliance Engine v2.1.0
+            Powered by DistilBERT Transformer · Built with React, Flask & PyTorch
           </p>
         </div>
       </footer>
