@@ -111,14 +111,12 @@ Detected keywords are highlighted in the React dashboard so users can see exactl
 
 Backend runs on port 5001.
 
-```
 POST /api/predict      Hybrid prediction — returns label, confidence, risk level, keywords
 GET  /api/health       Model load status + device info
 GET  /api/keywords     Full keyword lexicon with category counts
 GET  /api/demo         5 pre-built test messages
 POST /api/parse-file   Upload .eml, .pdf, or .txt for analysis
-POST /api/feedback     Submit correction — stored in data/feedback.csv for retraining
-```
+POST /api/feedback     Submit correction — stored in data/feedback.csv for retraining. One sample entry is included in `data/feedback.csv` to show the schema.
 
 ---
 
