@@ -49,7 +49,7 @@ To distinguish this submission from standard academic projects, we implemented t
 ## V. Requirement Fulfillment Checklist
 - [x] **NLP Preprocessing**: Robust pipeline with lemmatization and signature stripping.
 - [x] **Feature Engineering**: Extracted message length, case density, and urgency signals.
-- [x] **Classification**: Fine-tuned Transformer (DistilBERT) with 98.15% accuracy.
+- [x] **Classification**: Fine-tuned Transformer (DistilBERT) with 98.30% accuracy.
 - [x] **Evaluation**: Documented precision, recall, and ROC-AUC metrics.
 - [x] **Keyword Detection**: Real-time highlighting of 9 distinct phishing categories.
 - [x] **Maintenance**: Professional logging, Makefile automation, and CI/CD pipelines.
