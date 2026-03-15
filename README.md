@@ -1,6 +1,6 @@
 # PhishGuard AI
 
-Phishing detection system for emails and messages. Uses a fine-tuned DistilBERT transformer combined with a rule-based keyword scanner. Includes a React dashboard and Flask API.
+Phishing detection system for emails and sms. Uses a fine-tuned DistilBERT transformer combined with a rule-based keyword scanner. Includes a React dashboard and Flask API.
 
 > Assignment submission for AI Engineer role at QMSMART.  
 > Candidate: Papiya Mazumder
