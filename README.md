@@ -137,6 +137,15 @@ To demonstrate production-standard software engineering maturity:
 
 ---
 
+## Continuous Improvement (Human-in-the-loop)
+
+Most academic ML models are static. PhishGuard AI is built as a **evolving system**:
+
+1.  **Feedback Loop:** Implemented a `/api/feedback` endpoint and UI button that allows users to report misclassifications.
+2.  **Data Flywheel:** Feedback is saved in `data/feedback.csv`, creating a high-quality, human-labeled dataset for the next session of fine-tuning. This handles **Data Drift** and evolution of phishing templates over time.
+
+---
+
 ---
 
 ## NLP preprocessing

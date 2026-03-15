@@ -21,7 +21,7 @@ HYBRID SCORING (3-layer decision system):
   Layer 3 — Weighted blend:  50 % ML confidence + 50 % rule risk score
 """
 
-import os, sys, json, time, re, email, logging
+import os, sys, json, time, re, email, logging, csv
 import numpy as np
 import torch
 import PyPDF2
@@ -361,6 +361,49 @@ def get_keywords():
         "categories": list(PHISHING_KEYWORDS.keys()),
         "total_patterns": sum(len(v) for v in PHISHING_KEYWORDS.values()),
     })
+
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback():
+    """
+    Collect user feedback for misclassified messages.
+    Saves to data/feedback.csv for future retraining.
+    """
+    data = request.get_json(silent=True)
+    if not data or "text" not in data or "correct_label" not in data:
+        return jsonify({"error": "Missing required fields (text, correct_label)"}), 400
+
+    text          = data["text"].strip()
+    correct_label = data["correct_label"] # "Phishing" or "Legitimate"
+    prediction    = data.get("prediction", "Unknown")
+    confidence    = data.get("confidence", 0.0)
+
+    feedback_file = os.path.join(BASE_DIR, "data", "feedback.csv")
+    
+    # Ensure data directory exists
+    os.makedirs(os.path.dirname(feedback_file), exist_ok=True)
+
+    file_exists = os.path.isfile(feedback_file)
+    
+    try:
+        with open(feedback_file, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["timestamp", "text", "correct_label", "model_prediction", "model_confidence"])
+            
+            writer.writerow([
+                time.strftime("%Y-%m-%d %H:%M:%S"),
+                text.replace("\n", " "), # Flatten text for CSV
+                correct_label,
+                prediction,
+                confidence
+            ])
+        
+        logger.info(f"Feedback received: {correct_label} (Predicted: {prediction})")
+        return jsonify({"status": "success", "message": "Feedback saved. Thank you for helping PhishGuard improve!"})
+    except Exception as e:
+        logger.error(f"Failed to save feedback: {str(e)}")
+        return jsonify({"error": "Failed to save feedback"}), 500
 
 
 @app.route("/api/demo", methods=["GET"])

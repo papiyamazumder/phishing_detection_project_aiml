@@ -176,6 +176,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState("unknown");
+  const [feedbackStatus, setFeedbackStatus] = useState(null); // null, 'sending', 'sent', 'error'
   const resultRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -274,6 +275,30 @@ export default function App() {
       );
     } finally {
       setLoading(false);
+      setFeedbackStatus(null);
+    }
+  };
+
+  const submitFeedback = async (correctLabel) => {
+    if (!result || !text) return;
+    setFeedbackStatus('sending');
+
+    try {
+      const res = await fetch(`${API_BASE}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          correct_label: correctLabel,
+          prediction: result.prediction,
+          confidence: result.confidence
+        }),
+      });
+
+      if (!res.ok) throw new Error("Feedback submission failed");
+      setFeedbackStatus('sent');
+    } catch (e) {
+      setFeedbackStatus('error');
     }
   };
 
@@ -537,6 +562,32 @@ Or upload a .eml, .txt, or .pdf file using the button below.`}
                 <p>No actionable threat patterns detected. Message aligns with standard enterprise and aviation communication profiles.</p>
               </div>
             )}
+
+            {/* ── FEEDBACK LOOP ── */}
+            <div className="feedback-section">
+              <div className="feedback-inner">
+                {feedbackStatus === 'sent' ? (
+                  <div className="feedback-thanks">
+                    <span className="check-icon">✓</span>
+                    <p>Feedback received! Our engineers will use this to improve the PhishGuard model.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="feedback-prompt">Is this result incorrect? Help us improve our intelligence:</p>
+                    <div className="feedback-actions">
+                      <button
+                        className="feedback-btn"
+                        onClick={() => submitFeedback(result.prediction === "Phishing" ? "Legitimate" : "Phishing")}
+                        disabled={feedbackStatus === 'sending'}
+                      >
+                        {feedbackStatus === 'sending' ? 'Submitting...' : `Report as ${result.prediction === "Phishing" ? "Legitimate" : "Phishing"}`}
+                      </button>
+                      {feedbackStatus === 'error' && <span className="feedback-err">Failed to send feedback.</span>}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </section>
         )}
       </main>
