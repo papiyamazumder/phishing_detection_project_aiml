@@ -1,23 +1,74 @@
-# Environment variables — NEVER commit this
+# ── SECRETS ──────────────────────────────────────────────────────────────────
+# NEVER commit credentials or API keys
 .env
+.env.local
+.env.production
 
-# Trained model weights (very large)
-models/
+# ── DATASET ───────────────────────────────────────────────────────────────────
+# 30MB — kept in repo (assignment deliverable, within GitHub limits)
+# If you switch to the full 82k dataset uncomment the line below
+# data/dataset.csv
 
-# Python
+# ── TRAINED MODEL WEIGHTS ─────────────────────────────────────────────────────
+# DistilBERT weights are ~250MB — exceeds GitHub 100MB file limit
+# Regenerate with: python src/train.py
+models/best_model/
+models/*.bin
+models/*.npy
+
+# All other model files ARE committed (assignment deliverables):
+#   models/phishing_model.pkl     <- trained .pkl file (deliverable #2)
+#   models/model_comparison.png   <- comparison chart
+#   models/confusion_matrix.png   <- evaluation plot
+#   models/roc_curve.png          <- evaluation plot
+#   models/training_history.png   <- training curves
+#   models/confidence_dist.png    <- confidence distribution
+#   models/metrics.json           <- evaluation scores
+
+# ── PYTHON ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
 venv/
 .venv/
 venv_3.11/
-*.egg-info/
+env/
+.env/
 
-# Node
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# ── NODE / FRONTEND ───────────────────────────────────────────────────────────
 frontend/node_modules/
 frontend/build/
 frontend/.eslintcache
+frontend/.env.local
+frontend/coverage/
 
-# OS
+# ── KAGGLE ────────────────────────────────────────────────────────────────────
+# Kaggle credentials — use .env file instead
+# Never commit kaggle.json directly
+kaggle.json
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~

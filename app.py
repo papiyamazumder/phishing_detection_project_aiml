@@ -21,7 +21,7 @@ HYBRID SCORING (3-layer decision system):
   Layer 3 — Weighted blend:  50 % ML confidence + 50 % rule risk score
 """
 
-import os, sys, json, time, re, email
+import os, sys, json, time, re, email, logging
 import numpy as np
 import torch
 import PyPDF2
@@ -43,22 +43,54 @@ BASE_DIR  = os.path.dirname(__file__)
 MODEL_DIR = os.path.join(BASE_DIR, "models", "best_model")
 DEVICE    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# ── LOGGING SETUP ─────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("phishguard-api")
+
 # ── GLOBAL MODEL (loaded once at startup) ─────────────────────────────────────
 _tokenizer = None
 _model     = None
 
 
 def load_model():
-    """Load DistilBERT model and tokenizer into memory."""
+    """Load DistilBERT model and tokenizer into memory with Dynamic Quantization."""
     global _tokenizer, _model
     if _tokenizer is None:
-        print(f"Loading model from {MODEL_DIR}...")
+        logger.info(f"Loading model from {MODEL_DIR}...")
         t0 = time.time()
         _tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_DIR)
-        _model     = DistilBertForSequenceClassification.from_pretrained(MODEL_DIR)
+        base_model = DistilBertForSequenceClassification.from_pretrained(MODEL_DIR)
+        
+        # PRODUCTION OPTIMIZATION: Dynamic Quantization (INT8)
+        # Reduces model size (~260MB -> ~130MB) and speeds up CPU inference by 2-4x.
+        if DEVICE.type == "cpu":
+            try:
+                logger.info("Applying Dynamic Quantization (INT8) for CPU inference...")
+                # Ensure the quantization engine is set correctly for the environment
+                if sys.platform == "darwin": # Mac
+                    torch.backends.quantized.engine = 'qnnpack'
+                else:
+                    torch.backends.quantized.engine = 'fbgemm'
+
+                _model = torch.quantization.quantize_dynamic(
+                    base_model, {torch.nn.Linear}, dtype=torch.qint8
+                )
+                logger.info("Dynamic Quantization applied successfully.")
+            except Exception as qe:
+                logger.warning(f"Dynamic Quantization failed, falling back to base model: {qe}")
+                _model = base_model
+        else:
+            _model = base_model
+
         _model.to(DEVICE)
         _model.eval()
-        print(f"Model loaded in {time.time()-t0:.2f}s  (device: {DEVICE})")
+        logger.info(f"Model loaded in {time.time()-t0:.2f}s  (device: {DEVICE}, quantized: {DEVICE.type == 'cpu'})")
 
 
 def model_predict(text: str) -> tuple[int, float]:
@@ -165,7 +197,7 @@ def predict():
     # If the text starts with common EML headers, parse it to extract clean Body
     is_raw_eml = any(text.lstrip().upper().startswith(h) for h in ["DELIVERED-TO:", "RECEIVED:", "RETURN-PATH:", "FROM:"])
     if is_raw_eml:
-        print("Raw EML detected, parsing...")
+        logger.info("Raw EML detected, parsing content...")
         text = parse_eml_content(text)
 
     # ── Model prediction ──────────────────────────────────────────────────────

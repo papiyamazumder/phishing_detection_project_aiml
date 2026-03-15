@@ -24,6 +24,7 @@ WHY PREPROCESS FOR DISTILBERT?
 
 import re
 import string
+import unicodedata
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -37,6 +38,7 @@ nltk.download("punkt_tab",      quiet=True)
 nltk.download("stopwords",      quiet=True)
 nltk.download("wordnet",        quiet=True)
 nltk.download("averaged_perceptron_tagger", quiet=True)
+nltk.download("averaged_perceptron_tagger_eng", quiet=True)
 
 # ── SINGLETON OBJECTS (expensive to create, reuse them) ──────────────────────
 _lemmatizer = WordNetLemmatizer()
@@ -48,6 +50,14 @@ _stop_words = set(stopwords.words("english"))
 KEEP_WORDS = {"now", "free", "click", "limited", "urgent", "immediately",
               "account", "verify", "update", "confirm", "suspend", "expires"}
 _stop_words -= KEEP_WORDS
+
+
+# Common homoglyphs used in phishing (Greek, Cyrillic, etc. mapping to Latin)
+HOMOGLYPH_MAP = {
+    ord('ο'): 'o', ord('о'): 'o', ord('а'): 'a', ord('е'): 'e',
+    ord('і'): 'i', ord('р'): 'p', ord('с'): 'c', ord('у'): 'y',
+    ord('х'): 'x', ord('в'): 'b', ord('п'): 'n', ord('т'): 't',
+}
 
 
 def parse_eml_content(raw_content: str) -> str:
@@ -103,6 +113,12 @@ def clean_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
 
+    # Unicode Normalization (NFKD)
+    text = unicodedata.normalize("NFKD", text)
+
+    # Manual homoglyph mapping for common phishing characters
+    text = text.translate(HOMOGLYPH_MAP)
+
     # Strip email headers (From:, To:, Subject:, Date:, CC:, BCC:)
     text = re.sub(r"^(From|To|Cc|Bcc|Date|Subject|Reply-To|Sent):.*$",
                   " ", text, flags=re.MULTILINE | re.IGNORECASE)
@@ -135,6 +151,21 @@ def clean_text(text: str) -> str:
     return text
 
 
+def _get_wordnet_pos(treebank_tag):
+    """Map NLTK POS tags to WordNet POS tags."""
+    from nltk.corpus import wordnet
+    if treebank_tag.startswith('J'):
+        return wordnet.ADJ
+    elif treebank_tag.startswith('V'):
+        return wordnet.VERB
+    elif treebank_tag.startswith('N'):
+        return wordnet.NOUN
+    elif treebank_tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return wordnet.NOUN
+
+
 def tokenize_and_normalize(text: str) -> list[str]:
     """
     Stage 2 — Tokenization + normalization.
@@ -160,8 +191,10 @@ def tokenize_and_normalize(text: str) -> list[str]:
     # Remove stop words (KEEP_WORDS are excluded from _stop_words above)
     tokens = [t for t in tokens if t not in _stop_words]
 
-    # Lemmatize each token
-    tokens = [_lemmatizer.lemmatize(t) for t in tokens]
+    # Lemmatize each token with POS tagging for higher accuracy
+    # (e.g., 'verifying' as a verb becomes 'verify' instead of staying 'verifying')
+    pos_tags = nltk.pos_tag(tokens)
+    tokens = [_lemmatizer.lemmatize(t, _get_wordnet_pos(pos)) for t, pos in pos_tags]
 
     # Remove very short tokens (single characters add noise)
     tokens = [t for t in tokens if len(t) > 1]

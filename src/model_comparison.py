@@ -47,6 +47,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import joblib
+import shap
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -461,6 +462,90 @@ def save_comparison_chart(results: dict, save_path: str):
     print(f"  Comparison chart saved -> {save_path}")
 
 
+# ── STEP 7: GENERATE SHAP EXPLAINABILITY PLOTS ────────────────────────────────
+
+def generate_shap_plots(results: dict, vectorizer, plot_dir: str):
+    """
+    Generate SHAP (SHapley Additive exPlanations) plots for model interpretability.
+    
+    Interpretability (Explainability) is the 'Gold Standard' for enterprise trust.
+    It shows exactly WHICH words drove a specific prediction.
+    """
+    print("\n[6/5] Generating SHAP explainability plots (Gold Standard)...")
+    os.makedirs(plot_dir, exist_ok=True)
+
+    # We use the best classical model (usually Logistic Regression or SVM)
+    # for explanation as it's highly interpretable on TF-IDF features.
+    best_name = max(results, key=lambda n: results[n]["f1"])
+    best_clf  = results[best_name]["model"]
+    
+    # SHAP requires a background dataset for reference (median/mean of features)
+    # Since we can't easily pass the full matrix, we'll explain a few representative cases
+    test_cases = [
+        "URGENT: Your crew portal access is SUSPENDED. Verify at http://login-verify.biz",
+        "Hi team, just a reminder for the Q3 safety review meeting on Friday at 10 AM.",
+        "MANDATORY: HR payroll update required. Verify direct deposit: http://hr-payroll.biz"
+    ]
+    
+    # 1. Select features from the vectorizer
+    feature_names = vectorizer.get_feature_names_out()
+
+    # 2. Create SHAP explainer for the linear model/random forest
+    # For text, we use a wrapper that handles the vectorization
+    def model_predict(texts):
+        cleaned = [preprocess_for_features(t) for t in texts]
+        X_tmp   = vectorizer.transform(cleaned)
+        # Handle Naive Bayes scaling if needed, but best_clf is usually LR/SVM here
+        if best_name == "Naive Bayes":
+            scaler = MaxAbsScaler()
+            X_tmp  = scaler.fit_transform(X_tmp)
+            return best_clf.predict_proba(X_tmp)
+        
+        try:
+            return best_clf.predict_proba(X_tmp)
+        except AttributeError:
+            # For LinearSVC, we use decision_function and map to pseudo-probabilities
+            dec = best_clf.decision_function(X_tmp)
+            # Simple sigmoid for visualization purposes
+            probs = 1 / (1 + np.exp(-dec))
+            return np.column_stack([1-probs, probs])
+
+    # 3. Use shap.Explainer with a Text masker
+    explainer = shap.Explainer(model_predict, masker=shap.maskers.Text(tokenizer=r'\W+'))
+    
+    try:
+        shap_values = explainer(test_cases)
+        
+        # Save a summary plot (static version for the report)
+        # Note: In a real notebook, shap.plots.text is interactive.
+        # Here we'll generate a bar plot of top words for the phishing example.
+        plt.figure(figsize=(10, 6))
+        # We'll simulate a summary output for the first (phishing) case
+        # because shap.plots.text doesn't return a matplotlib figure easily
+        
+        # Manual plot for the report to ensure visibility
+        case_idx  = 0 # Phishing case
+        sv        = shap_values[case_idx]
+        top_indices = np.argsort(np.abs(sv.values[:, 1]))[-10:]
+        
+        words     = [sv.data[i] for i in top_indices]
+        importances = [sv.values[i, 1] for i in top_indices]
+        
+        colors = ['red' if v > 0 else 'blue' for v in importances]
+        plt.barh(words, importances, color=colors)
+        plt.axvline(x=0, color='black', lw=0.8)
+        plt.title(f"SHAP Explainer: {test_cases[case_idx][:40]}...\n(Red = Phishing Signal, Blue = Legitimate Signal)")
+        plt.xlabel("SHAP Value (Contribution to Phishing Score)")
+        
+        save_path = os.path.join(plot_dir, "shap_explanation.png")
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close()
+        print(f"  SHAP explanation plot saved -> {save_path}")
+        
+    except Exception as e:
+        print(f"  SHAP generation failed: {e} (Common if shap/ipywidgets version mismatch)")
+
+
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 
 def run_comparison(data_path: str, model_dir: str, plot_path: str):
@@ -489,6 +574,9 @@ def run_comparison(data_path: str, model_dir: str, plot_path: str):
     # 6. Save comparison chart
     print("\n[+] Saving comparison chart...")
     save_comparison_chart(results, plot_path)
+
+    # 7. Generate SHAP explainability plots
+    generate_shap_plots(results, vectorizer, os.path.dirname(plot_path))
 
     print(f"""
 {'=' * 60}
